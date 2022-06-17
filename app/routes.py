@@ -1,7 +1,6 @@
 import argparse
 import base64
 import io
-import os
 import json
 import os
 import pickle
@@ -71,17 +70,25 @@ def session_required(f):
         # Clear out old sessions
         invalid_sessions = []
         for user_session in os.listdir(app.config['SESSION_FILE_DIR']):
-            session_path = os.path.join(
+            file_path = os.path.join(
                 app.config['SESSION_FILE_DIR'],
                 user_session)
+
             try:
-                with open(session_path, 'rb') as session_file:
+                # Ignore files that are larger than the max session file size
+                if os.path.getsize(file_path) > app.config['MAX_SESSION_SIZE']:
+                    continue
+
+                with open(file_path, 'rb') as session_file:
                     _ = pickle.load(session_file)
                     data = pickle.load(session_file)
                     if isinstance(data, dict) and 'valid' in data:
                         continue
-                    invalid_sessions.append(session_path)
-            except (EOFError, FileNotFoundError, pickle.UnpicklingError):
+                    invalid_sessions.append(file_path)
+            except Exception:
+                # Broad exception handling here due to how instances installed
+                # with pip seem to have issues storing unrelated files in the
+                # same directory as sessions
                 pass
 
         for invalid_session in invalid_sessions:
