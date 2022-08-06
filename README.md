@@ -4,7 +4,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![tests](https://github.com/benbusby/whoogle-search/actions/workflows/tests.yml/badge.svg)](https://github.com/benbusby/whoogle-search/actions/workflows/tests.yml)
 [![buildx](https://github.com/benbusby/whoogle-search/actions/workflows/buildx.yml/badge.svg)](https://github.com/benbusby/whoogle-search/actions/workflows/buildx.yml)
-[![pep8](https://github.com/benbusby/whoogle-search/workflows/pep8/badge.svg)](https://github.com/benbusby/whoogle-search/actions?query=workflow%3Apep8)
 [![codebeat badge](https://codebeat.co/badges/e96cada2-fb6f-4528-8285-7d72abd74e8d)](https://codebeat.co/projects/github-com-benbusby-shoogle-master)
 [![Docker Pulls](https://img.shields.io/docker/pulls/benbusby/whoogle-search)](https://hub.docker.com/r/benbusby/whoogle-search)
 
@@ -104,29 +103,18 @@ Provides:
 
 ### C) [Fly.io](https://fly.io)
 
-You will need a [Fly.io](https://fly.io) account to do this. Fly requires a credit card to deploy anything, but you can have up to 3 shared-CPU VMs running full-time each month for free.
+You will need a **PAID** [Fly.io](https://fly.io) account to deploy Whoogle.
 
-#### Install the CLI:
+#### Install the CLI: https://fly.io/docs/hands-on/installing/
 
-```bash
-curl -L https://fly.io/install.sh | sh
-```
-
-#### Deploy your app
+#### Deploy the app
 
 ```bash
-fly apps create --org personal --port 5000
-# Choose a name and the Image builder
-# Enter `benbusby/whoogle-search:latest` as the image name
-fly deploy
+flyctl auth login
+flyctl launch --image benbusby/whoogle-search:latest
 ```
 
 Your app is now available at `https://<app-name>.fly.dev`.
-
-You can customize the `fly.toml`:
-- Remove the non-https service
-- Add environment variables under the `[env]` key
-  - Use `fly secrets set NAME=value` for more sensitive values like `WHOOGLE_PASS` and `WHOOGLE_PROXY_PASS`.
 
 ### D) [pipx](https://github.com/pipxproject/pipx#install-pipx)
 Persistent install:
@@ -207,6 +195,8 @@ Description=Whoogle
 #Environment=WHOOGLE_ALT_TL=farside.link/lingva
 #Environment=WHOOGLE_ALT_IMG=farside.link/rimgo
 #Environment=WHOOGLE_ALT_WIKI=farside.link/wikiless
+#Environment=WHOOGLE_ALT_IMDB=farside.link/libremdb
+#Environment=WHOOGLE_ALT_QUORA=farside.link/quetre
 # Load values from dotenv only
 #Environment=WHOOGLE_DOTENV=1
 Type=simple
@@ -241,39 +231,39 @@ Due to the nature of interacting with Google through Tor we will need to be able
 There are two authentication methods, password and cookie. You will need to make changes to your torrc:
   * Cookie
     1. Uncomment or add the following lines in your torrc:
-       - `ControlPort 9051` 
+       - `ControlPort 9051`
        - `CookieAuthentication 1`
        - `DataDirectoryGroupReadable 1`
        - `CookieAuthFileGroupReadable 1`
-    
+
     2. Make the tor auth cookie readable:
        - This is assuming that you are using a dedicated user to run whoogle. If you are using a different user replace `whoogle` with that user.
-       
+
        1. `chmod tor:whoogle /var/lib/tor`
        2. `chmod tor:whoogle /var/lib/tor/control_auth_cookie`
-    
+
     3. Restart the tor service:
        - `systemctl restart tor`
-     
+
     4. Set the Tor environment variable to 1, `WHOOGLE_CONFIG_TOR`. Refer to the [Environment Variables](#environment-variables) section for more details.
        - This may be added in the systemd unit file or env file `WHOOGLE_CONFIG_TOR=1`
-  
+
   * Password
     1. Run this command:
        - `tor --hash-password {Your Password Here}`; put your password in place of `{Your Password Here}`.
        - Keep the output of this command, you will be placing it in your torrc.
        - Keep the password input of this command, you will be using it later.
-    
+
     2. Uncomment or add the following lines in your torrc:
-       - `ControlPort 9051` 
+       - `ControlPort 9051`
        - `HashedControlPassword {Place output here}`; put the output of the previous command in place of `{Place output here}`.
-     
+
     3. Now take the password from the first step and place it in the control.conf file within the whoogle working directory, ie. [misc/tor/control.conf](misc/tor/control.conf)
        - If you want to place your password file in a different location set this location with the `WHOOGLE_TOR_CONF` environment variable. Refer to the [Environment Variables](#environment-variables) section for more details.
-    
+
     4. Heavily restrict access to control.conf to only be readable by the user running whoogle:
        - `chmod 400 control.conf`
-    
+
     5. Finally set the Tor environment variable and use password variable to 1, `WHOOGLE_CONFIG_TOR` and `WHOOGLE_TOR_USE_PASS`. Refer to the [Environment Variables](#environment-variables) section for more details.
        - These may be added to the systemd unit file or env file:
           - `WHOOGLE_CONFIG_TOR=1`
@@ -378,18 +368,21 @@ There are a few optional environment variables available for customizing a Whoog
 | WHOOGLE_PROXY_LOC    | The location of the proxy server (host or ip).                                            |
 | EXPOSE_PORT          | The port where Whoogle will be exposed.                                                   |
 | HTTPS_ONLY           | Enforce HTTPS. (See [here](https://github.com/benbusby/whoogle-search#https-enforcement)) |
-| WHOOGLE_ALT_TW       | The twitter.com alternative to use when site alternatives are enabled in the config.      |
-| WHOOGLE_ALT_YT       | The youtube.com alternative to use when site alternatives are enabled in the config.      |
-| WHOOGLE_ALT_IG       | The instagram.com alternative to use when site alternatives are enabled in the config.    |
-| WHOOGLE_ALT_RD       | The reddit.com alternative to use when site alternatives are enabled in the config.       |
-| WHOOGLE_ALT_TL       | The Google Translate alternative to use. This is used for all "translate ____" searches.  |
-| WHOOGLE_ALT_MD       | The medium.com alternative to use when site alternatives are enabled in the config.       |
-| WHOOGLE_ALT_IMG      | The imgur.com alternative to use when site alternatives are enabled in the config.        |
-| WHOOGLE_ALT_WIKI     | The wikipedia.com alternative to use when site alternatives are enabled in the config.    |
-| WHOOGLE_AUTOCOMPLETE | Controls visibility of autocomplete/search suggestions. Default on -- use '0' to disable  |
+| WHOOGLE_ALT_TW       | The twitter.com alternative to use when site alternatives are enabled in the config. Set to "" to disable. |
+| WHOOGLE_ALT_YT       | The youtube.com alternative to use when site alternatives are enabled in the config. Set to "" to disable. |
+| WHOOGLE_ALT_IG       | The instagram.com alternative to use when site alternatives are enabled in the config. Set to "" to disable. |
+| WHOOGLE_ALT_RD       | The reddit.com alternative to use when site alternatives are enabled in the config. Set to "" to disable. |
+| WHOOGLE_ALT_TL       | The Google Translate alternative to use. This is used for all "translate ____" searches.  Set to "" to disable. |
+| WHOOGLE_ALT_MD       | The medium.com alternative to use when site alternatives are enabled in the config. Set to "" to disable. |
+| WHOOGLE_ALT_IMG      | The imgur.com alternative to use when site alternatives are enabled in the config. Set to "" to disable. |
+| WHOOGLE_ALT_WIKI     | The wikipedia.com alternative to use when site alternatives are enabled in the config. Set to "" to disable. |
+| WHOOGLE_ALT_IMDB     | The imdb.com alternative to use when site alternatives are enabled in the config. Set to "" to disable.  |
+| WHOOGLE_ALT_QUORA    | The quora.com alternative to use when site alternatives are enabled in the config. Set to "" to disable. |
+| WHOOGLE_AUTOCOMPLETE | Controls visibility of autocomplete/search suggestions. Default on -- use '0' to disable. |
 | WHOOGLE_MINIMAL      | Remove everything except basic result cards from all search queries.                      |
 | WHOOGLE_CSP          | Sets a default set of 'Content-Security-Policy' headers                                   |
 | WHOOGLE_RESULTS_PER_PAGE          | Set the number of results per page                                           |
+| WHOOGLE_TOR_SERVICE  | Enable/disable the Tor service on startup. Default on -- use '0' to disable.              |
 | WHOOGLE_TOR_USE_PASS | Use password authentication for tor control port. |
 | WHOOGLE_TOR_CONF | The absolute path to the config file containing the password for the tor control port. Default: ./misc/tor/control.conf WHOOGLE_TOR_PASS must be 1 for this to work.|
 
@@ -504,7 +497,7 @@ server {
 	server_name your_domain_name.com;
 	access_log /dev/null;
 	error_log /dev/null;
-	
+
 	location / {
 	    proxy_set_header X-Real-IP $remote_addr;
 	    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -538,7 +531,7 @@ Under the hood, Whoogle is a basic Flask app with the following structure:
     - `search.html`: An iframe-able search page
     - `logo.html`: A template consisting mostly of the Whoogle logo as an SVG (separated to help keep `index.html` a bit cleaner)
     - `opensearch.xml`: A template used for supporting [OpenSearch](https://developer.mozilla.org/en-US/docs/Web/OpenSearch).
-    - `imageresults.html`: An "exprimental" template used for supporting the "Full Size" image feature on desktop.
+    - `imageresults.html`: An "experimental" template used for supporting the "Full Size" image feature on desktop.
   - `static/<css|js>`
     - CSS/Javascript files, should be self-explanatory
   - `static/settings`
